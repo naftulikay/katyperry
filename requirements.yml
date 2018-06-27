@@ -1,0 +1,5 @@
+---
+- name: vagrant-docker
+  src: naftulikay.vagrant-docker
+- src: naftulikay.google-cloud-sdk
+- src: naftulikay.terraform

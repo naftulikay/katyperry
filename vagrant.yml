@@ -1,0 +1,60 @@
+---
+- name: build
+  hosts: all
+  become: true
+  vars:
+    helm_version: 2.9.1
+  roles:
+    - role: vagrant-docker
+    - role: naftulikay.google-cloud-sdk
+    - role: naftulikay.terraform
+      version: 0.11.7
+  tasks:
+    - name: allow aws environment variables across the wire
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        line: AcceptEnv AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+      notify: restart ssh
+
+    - name: install rpm keys
+      rpm_key:
+        key: "{{ item }}"
+        state: present
+      with_items:
+        - https://packages.cloud.google.com/yum/doc/yum-key.gpg
+        - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+    - name: install kubernetes repository
+      yum_repository:
+        name: kubernetes
+        description: Kubernetes
+        baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+        enabled: true
+        gpgcheck: true
+        repo_gpgcheck: true
+        gpgkey:
+          - https://packages.cloud.google.com/yum/doc/yum-key.gpg
+          - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+    - name: install kubectl
+      package: name=kubectl state=present
+
+    - name: create helm directory
+      file: path=/usr/local/share/helm/{{ helm_version }} state=directory
+
+    - name: install helm
+      unarchive:
+        src: https://storage.googleapis.com/kubernetes-helm/helm-v{{ helm_version | default('2.9.1') }}-linux-amd64.tar.gz
+        remote_src: true
+        dest: /usr/local/share/helm/{{ helm_version }}
+        creates: /usr/local/share/helm/{{ helm_version }}/linux-amd64/helm
+
+    - name: symlink helm
+      file:
+        src: /usr/local/share/helm/{{ helm_version }}/linux-amd64/helm
+        dest: /usr/local/bin/helm
+        state: link
+
+  handlers:
+    - name: restart ssh
+      service: name=sshd state=restarted
