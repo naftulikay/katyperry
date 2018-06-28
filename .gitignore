@@ -3,3 +3,7 @@
 
 /private/*
 !/private/.gitkeep
+
+.terraform
+terraform.tfstate
+terraform.tfstate.*
