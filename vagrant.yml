@@ -15,15 +15,7 @@
         dest: /etc/ssh/sshd_config
         line: AcceptEnv AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
       notify: restart ssh
-
-    - name: install rpm keys
-      rpm_key:
-        key: "{{ item }}"
-        state: present
-      with_items:
-        - https://packages.cloud.google.com/yum/doc/yum-key.gpg
-        - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-
+#
     - name: install kubernetes repository
       yum_repository:
         name: kubernetes
@@ -35,9 +27,16 @@
         gpgkey:
           - https://packages.cloud.google.com/yum/doc/yum-key.gpg
           - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+      register: makecache
+
+    - name: update rpm key cache (ansible/ansible#20711)
+      command: yum -q makecache -y --disablerepo=* --enablerepo=kubernetes
+      args:
+        warn: false
+      when: makecache is changed
 
     - name: install kubectl
-      package: name=kubectl state=present
+      yum: name=kubectl state=present update_cache=true
 
     - name: create helm directory
       file: path=/usr/local/share/helm/{{ helm_version }} state=directory
