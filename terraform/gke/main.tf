@@ -1,6 +1,5 @@
 provider "google" {
   region = "us-west1"
-  project = "naftuli-test"
 }
 
 data "google_client_config" "default" {}
@@ -34,6 +33,9 @@ resource "google_container_cluster" "default" {
   region = "${data.google_client_config.default.region}"
   initial_node_count = 1
   remove_default_node_pool = true
+
+  min_master_version = "1.10.4-gke.2"
+  node_version = "1.10.4-gke.2"
 
   network = "${google_compute_network.default.self_link}"
   subnetwork = "${google_compute_subnetwork.default.self_link}"

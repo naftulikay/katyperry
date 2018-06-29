@@ -1,10 +1,11 @@
 # Spinnaker
 
 Enter the Vagrant box and setup your `GOOGLE_APPLICATION_CREDENTIALS` environment variable to use your credentials
-for Terraform:
+for Terraform, and choose a GCP project to use with the `GOOGLE_PROJECT` environment variable:
 
 ```shell
 $ export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/legacy_credentials/me@naftuli.wtf/adc.json"
+$ export GOOGLE_PROJECT="naftuli-test"
 ```
 
 Next, spin up the Terraform to create a network and deploy GKE:
