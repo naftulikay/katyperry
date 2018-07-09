@@ -93,7 +93,7 @@ Apply a necessary RBAC:
 ```shell
 #!/bin/bash
 
-kubectl apply -f demos/spinanker/rbac.yaml
+kubectl apply -f demos/spinnaker/rbac.yaml
 ```
 
 Port forwarding must be setup to access Spinnaker:
