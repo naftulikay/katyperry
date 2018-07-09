@@ -31,4 +31,4 @@ $ kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-ad
 $ helm init --service-account tiller
 ```
 
-From here, the sky's the limit and the course uncharted.
+From here, the sky's the limit and the course uncharted. Continue [here](demos/) for demo docs.
