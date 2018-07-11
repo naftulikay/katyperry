@@ -76,7 +76,7 @@ gcloud iam service-accounts keys create $SERVICE_ACCOUNT_DEST \
     --iam-account $SA_EMAIL
 ```
 
-2. Paste the json in `$SERVICE_ACCOUNT_DEST` into `helm/values.yaml`
+2. Paste the json in `$SERVICE_ACCOUNT_DEST` into `demos/spinnaker/values.yaml`
 3. The rest of the values are already set.
 
 Next, we'll deploy Spinnaker:
@@ -85,7 +85,7 @@ Next, we'll deploy Spinnaker:
 #!/bin/bash
 
 cd helm/charts/stable/spinnaker
-helm install --name genghis -f demos/spinnaker/values.yaml stable/spinnaker
+helm install --name genghis -f ../../../../demos/spinnaker/values.yaml stable/spinnaker
 ```
 
 Apply a necessary RBAC:
@@ -102,11 +102,17 @@ Port forwarding must be setup to access Spinnaker:
 #!/bin/bash
 
 export DECK_POD=$(kubectl get pods --namespace default -l "component=deck,app=genghis-spinnaker" -o jsonpath="{.items[0].metadata.name}")
-kubectl port-forward --namespace default $DECK_POD 9000
+kubectl port-forward --namespace default $DECK_POD 9000 &
 ```
 
-Now, `127.0.0.1:9000` within the VM is securely forwarded into the cluster to Spinnaker. The easiest way to access this
-from your desktop is to shell into the Vagrant machine with an SSH port forward:
+Same for Jenkins:
+
+```shell
+export JENKINS_POD=$(kubectl get pods --namespace default -l "component=deck,app=genghis-jenkins" -o jsonpath="{.items[0].metadata.name}")
+kubectl port-forward --namespace default $JENKINS_POD 8080 &
+```
+
+Now, `127.0.0.1:9000` within the VM is securely forwarded into the cluster to Spinnaker and `127.0.0.1:8080` to Jenkins. The easiest way to access this from your desktop is to shell into the Vagrant machine with an SSH port forward:
 
 ```
 $ vagrant ssh -- -L 9000:localhost:9000

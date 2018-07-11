@@ -17,7 +17,6 @@ accounts:
   address: https://gcr.io
   username: _json_key
   password: '{
-	  PASTE THE GCR JSON HERE
 }'
 
 # Settings for notifications via email
