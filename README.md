@@ -32,3 +32,16 @@ $ helm init --service-account tiller
 ```
 
 From here, the sky's the limit and the course uncharted. Continue [here](demos/) for demo docs.
+
+## License
+
+ * [Apache License, Version 2.0][license-apache]: [`./LICENSE-APACHE`][license-apache-local]
+ * [MIT License][license-mit]: [`./LICENSE-MIT`][license-mit-local]
+
+
+Licensed at your option of either of the above licenses.
+
+ [license-mit]: https://opensource.org/licenses/MIT
+ [license-mit-local]: LICENSE-MIT
+ [license-apache]: https://www.apache.org/licenses/LICENSE-2.0
+ [license-apache-local]: LICENSE-APACHE
