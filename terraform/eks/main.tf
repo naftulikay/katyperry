@@ -187,8 +187,8 @@ resource "aws_iam_policy" "nodes-r53-policy" {
         "elasticloadbalancing:SetSecurityGroups",
         "elasticloadbalancing:SetSubnets",
         "elasticloadbalancing:SetWebACL",
-	"iam:GetServerCertificate",
-	"iam:ListServerCertificates",
+        "iam:GetServerCertificate",
+        "iam:ListServerCertificates",
         "route53:GetHostedZone",
         "route53:ListHostedZones",
         "route53:ListHostedZonesByName",
@@ -201,11 +201,11 @@ resource "aws_iam_policy" "nodes-r53-policy" {
         "route53:DeleteHealthCheck",
         "route53:UpdateHealthCheck",
         "servicediscovery:*",
-	"tag:GetResources",
-	"waf:GetWebACL",
+        "tag:GetResources",
+        "waf:GetWebACL",
         "waf:AssociateWebACL",
         "waf:DisassociateWebACL",
-	"waf-regional:GetWebACLForResource"
+        "waf-regional:GetWebACLForResource"
       ],
       "Effect": "Allow",
       "Resource": "*"
@@ -269,7 +269,7 @@ resource "aws_security_group_rule" "eks-node-ingress-cluster" {
 data "aws_ami" "eks-worker" {
   filter {
     name   = "name"
-    values = ["eks-worker-*"]
+    values = ["amazon-eks-node-*"]
   }
 
   most_recent = true
@@ -282,45 +282,27 @@ data "aws_ami" "eks-worker" {
 # information into the AutoScaling Launch Configuration.
 # More information: https://amazon-eks.s3-us-west-2.amazonaws.com/1.10.3/2018-06-05/amazon-eks-nodegroup.yaml
 locals {
-  eks-node-userdata = <<USERDATA
-#!/bin/bash -xe
-CA_CERTIFICATE_DIRECTORY=/etc/kubernetes/pki
-CA_CERTIFICATE_FILE_PATH=$CA_CERTIFICATE_DIRECTORY/ca.crt
-mkdir -p $CA_CERTIFICATE_DIRECTORY
-echo "${aws_eks_cluster.default.certificate_authority.0.data}" | base64 -d >  $CA_CERTIFICATE_FILE_PATH
-INTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
-sed -i s,MASTER_ENDPOINT,${aws_eks_cluster.default.endpoint},g /var/lib/kubelet/kubeconfig
-sed -i s,CLUSTER_NAME,${var.cluster-name},g /var/lib/kubelet/kubeconfig
-sed -i s,REGION,${data.aws_region.current.name},g /etc/systemd/system/kubelet.service
-sed -i s,MAX_PODS,20,g /etc/systemd/system/kubelet.service
-sed -i s,MASTER_ENDPOINT,${aws_eks_cluster.default.endpoint},g /etc/systemd/system/kubelet.service
-sed -i s,INTERNAL_IP,$INTERNAL_IP,g /etc/systemd/system/kubelet.service
-DNS_CLUSTER_IP=10.100.0.10
-if [[ $INTERNAL_IP == 10.* ]] ; then DNS_CLUSTER_IP=172.20.0.10; fi
-sed -i s,DNS_CLUSTER_IP,$DNS_CLUSTER_IP,g /etc/systemd/system/kubelet.service
-sed -i s,CERTIFICATE_AUTHORITY_FILE,$CA_CERTIFICATE_FILE_PATH,g /var/lib/kubelet/kubeconfig
-sed -i s,CLIENT_CA_FILE,$CA_CERTIFICATE_FILE_PATH,g  /etc/systemd/system/kubelet.service
-sed -i '/--node-ip/a\ \ --node-labels purpose=general \\'  /etc/systemd/system/kubelet.service
+  eks-node-general-userdata = <<USERDATA
+#!/bin/bash
 sed -i -e 's/1024:4096/65536:65536/g' /etc/sysconfig/docker
-systemctl daemon-reload
-systemctl restart kubelet
+
+/etc/eks/bootstrap.sh --apiserver-endpoint '${aws_eks_cluster.default.endpoint}' --b64-cluster-ca '${aws_eks_cluster.default.certificate_authority.0.data}' '${var.cluster-name}' --kubelet-extra-args '--node-labels purpose=general'
 USERDATA
 }
-
 
 resource "aws_key_pair" "default" {
   key_name = "reltio"
   public_key = "${file("id_rsa.pub")}"
 }
 
-resource "aws_launch_configuration" "default" {
+resource "aws_launch_configuration" "general" {
   associate_public_ip_address = true
   iam_instance_profile        = "${aws_iam_instance_profile.eks-node.name}"
   image_id                    = "${data.aws_ami.eks-worker.id}"
   instance_type               = "m5.large"
   name_prefix                 = "eks"
   security_groups             = ["${aws_security_group.eks-node.id}"]
-  user_data_base64            = "${base64encode(local.eks-node-userdata)}"
+  user_data_base64            = "${base64encode(local.eks-node-general-userdata)}"
   key_name                    = "${aws_key_pair.default.key_name}"
 
   lifecycle {
@@ -328,13 +310,17 @@ resource "aws_launch_configuration" "default" {
   }
 }
 
-resource "aws_autoscaling_group" "default" {
+resource "aws_autoscaling_group" "general" {
+  name_prefix          = "${aws_launch_configuration.general.name}--"
   desired_capacity     = 2
-  launch_configuration = "${aws_launch_configuration.default.id}"
+  launch_configuration = "${aws_launch_configuration.general.id}"
   max_size             = 3
   min_size             = 1
-  name                 = "eks"
   vpc_zone_identifier  = ["${aws_subnet.default.*.id}"]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   tag {
     key                 = "Name"
